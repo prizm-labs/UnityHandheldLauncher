@@ -7,7 +7,7 @@ public class UIManager : MonoBehaviour {
 	public GameObject pairingSetupView;
 	public GameObject pairingLobbyView;
 	public GameObject sessionLobbyView;
-	public GameObject gameViewLandscapeView;
+	public GameObject gameViewLandscape;
 
 	private GameObject currentView;
 	private GameObject lastView;
@@ -37,6 +37,8 @@ public class UIManager : MonoBehaviour {
 
 	public void goForwardToPairingSetup() {
 		goToForwardToView (pairingSetupView);
+
+		pairingSetupView.GetComponent<PairingSetupController> ().OnEnter ();
 	}
 
 	public void goForwardToPairingLobby() {
@@ -51,12 +53,19 @@ public class UIManager : MonoBehaviour {
 
 		Screen.orientation = ScreenOrientation.Landscape;
 
-		goToForwardToView (gameViewLandscapeView);
+		goToForwardToView (gameViewLandscape);
 	}
 
 	void Awake () {
 
 		Screen.orientation = ScreenOrientation.Portrait;
+
+		welcomeView = GameObject.FindGameObjectWithTag ("view_welcome");
+		pairingSetupView = GameObject.FindGameObjectWithTag ("view_pairing-setup");
+		pairingLobbyView = GameObject.FindGameObjectWithTag ("view_pairing-lobby");
+		sessionLobbyView = GameObject.FindGameObjectWithTag ("view_session-lobby");
+		gameViewLandscape = GameObject.FindGameObjectWithTag ("view_game-landscape");
+
 
 		currentView = welcomeView;
 
@@ -64,7 +73,7 @@ public class UIManager : MonoBehaviour {
 		pairingSetupView.GetComponent<Animator> ().speed = 2;
 		pairingLobbyView.GetComponent<Animator> ().speed = 2;
 		sessionLobbyView.GetComponent<Animator> ().speed = 2;
-		gameViewLandscapeView.GetComponent<Animator> ().speed = 2;
+		gameViewLandscape.GetComponent<Animator> ().speed = 2;
 
 		// show PairingSetup View
 

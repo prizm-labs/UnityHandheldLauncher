@@ -3,6 +3,16 @@ using System.Collections;
 
 public class PairingLobbyController : MonoBehaviour {
 
+	private void DiscoverSessions() {
+
+
+	}
+
+	public void OnEnter() {
+
+
+	}
+
 	// Use this for initialization
 	void Start () {
 	
