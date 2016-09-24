@@ -12,14 +12,14 @@ namespace Prizm {
 		void Awake(){
 			if (instance == null) {
 				instance = this;
-				string sceneName = SceneManager.GetActiveScene ().name;
-				if (sceneName == "TT_Scene" || sceneName == "TT_Scene_test" || sceneName == "TT_Scene_Example") {	//TODO: find a better system for this
-					Initialize ();
-					StartAsServer ();
-					WebSocketManager.instance.StartAsServer ();				
-				} else if (sceneName == "HH_Scene" || sceneName == "HH_Scene_test") {
-					
-				}
+//				string sceneName = SceneManager.GetActiveScene ().name;
+//				if (sceneName == "TT_Scene" || sceneName == "TT_Scene_test" || sceneName == "TT_Scene_Example") {	//TODO: find a better system for this
+//					Initialize ();
+//					StartAsServer ();
+//					WebSocketManager.instance.StartAsServer ();				
+//				} else if (sceneName == "HH_Scene" || sceneName == "HH_Scene_test") {
+//					
+//				}
 			} else
 				Destroy (gameObject);
 		}
@@ -80,6 +80,21 @@ namespace Prizm {
 			return new string(chars);
 		}
 
+		public void InitializeAsClient() {
+
+			m_IsClient = true;
+
+			Initialize ();
+			StartAsServer();
+		}
+
+		public void InitializeAsServer() {
+
+			m_IsServer = true;
+			Initialize ();
+			StartAsClient ();
+		}
+
 		public void Initialize()
 		{
 			
@@ -103,12 +118,6 @@ namespace Prizm {
 			cc.AddChannel(QosType.Unreliable);
 
 			defaultTopology = new HostTopology(cc, 1);
-
-			if (m_IsServer)
-				StartAsServer();
-			
-			if (m_IsClient)
-				StartAsClient();
 			
 		}
 
@@ -236,20 +245,27 @@ namespace Prizm {
 			//Debug.LogError (HostIp);
 
 			//if game is disconnected and is in our available list of games, remove it from that list
-			if (data == "disconnected" && LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
-				if (LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
-					LoginManager.instance.RemoveGame (HostIp);
-				}
+//			if (data == "disconnected" && LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
+//				if (LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
+//					LoginManager.instance.RemoveGame (HostIp);
+//				}
+//			}
+			if (data == "disconnected") {
+				SendMessage ("UnregisterSession", new GameToJoin (HostIp, data));
 			}
 
 			//if game is not labeled disconnected and we don't have it on our available games list, add the game to the list
-			else if (!LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
-				string roomName = data;
-				GameToJoin newGame = new GameToJoin (HostIp, roomName);
-				LoginManager.instance.AddGame (newGame);
-			} else {
-				LoginManager.instance.AvailableGames [HostIp].roomName = data;
-				LoginManager.instance.DisplayGames ();
+//			else if (!LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
+//				string roomName = data;
+//				GameToJoin newGame = new GameToJoin (HostIp, roomName);
+//				LoginManager.instance.AddGame (newGame);
+//			} else {
+//				LoginManager.instance.AvailableGames [HostIp].roomName = data;
+//				LoginManager.instance.DisplayGames ();
+//			}
+
+			else {
+				SendMessage ("RegisterSession", new GameToJoin (HostIp, data));
 			}
 
 		}

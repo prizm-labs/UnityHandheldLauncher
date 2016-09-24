@@ -3,6 +3,10 @@ using System.Collections;
 
 public class PairingLobbyController : MonoBehaviour {
 
+	public GameObject sessionsAvailableView;
+	public GameObject sessionDiscoveryInfo;
+	public GameObject discoveryFailedNotification;
+
 	private void DiscoverSessions() {
 
 
