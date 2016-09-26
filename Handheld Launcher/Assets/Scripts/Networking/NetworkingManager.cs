@@ -12,36 +12,6 @@ public class NetworkingManager : MonoBehaviour {
 
 	public Dictionary<string, GameToJoin> AvailableGames = new Dictionary<string, GameToJoin>();
 
-	public void RegisterSession( GameToJoin newGame ) {
-		//AvailableGames.Add (newGame.LocalIp, newGame.roomName);
-	}
-
-	public void UnregisterSession ( GameToJoin existingGame ) {
-		if (AvailableGames.ContainsKey (existingGame.LocalIp)) {
-			AvailableGames.Remove (existingGame.LocalIp);
-		}
-	}
-
-	public void DisplayGames(){
-		Transform PanelListGames = transform.FindChild ("Pnl_NetworkGames/Pnl_ListGames");		
-
-		foreach (Transform child in PanelListGames) {
-			Destroy (child.gameObject);
-		}
-		foreach(GameToJoin game in AvailableGames.Values){
-			CreateGamesButton (game);
-		}
-	}
-
-	void CreateGamesButton(GameToJoin game){
-		Transform PanelButton = transform.FindChild ("Pnl_NetworkGames/Pnl_ListGames");
-		GameObject btn = Instantiate (Resources.Load ("PlayTablePrefabs/UI/RoomButton/Btn_Room")) as GameObject;
-		btn.transform.SetParent (PanelButton);
-		btn.transform.FindChild ("Text").GetComponent<Text> ().text = game.roomName + "\n" + game.LocalIp;
-		btn.GetComponent<Button> ().onClick.AddListener (() => WebsocketClient.instance.BeginConnection (game.LocalIp, game.roomName));
-		//btn.GetComponent<Button>().onClick.AddListener(()=> ShowRoomInfo());
-	}
-
 	// Use this for initialization
 	void Start () {
 
@@ -61,7 +31,41 @@ public class NetworkingManager : MonoBehaviour {
 	}
 
 
-	public bool HasInternetLANConnection()
+    // SendMessage Receivers
+    //======================
+
+    public void ClientDiscoveryStarted()
+    {
+
+        Debug.Log("ClientDiscoveryStarted");
+    }
+
+    public void RegisterSession(GameToJoin newGame)
+    {
+        if (!AvailableGames.ContainsKey(newGame.LocalIp)) {
+            AvailableGames.Add(newGame.LocalIp, newGame);
+            Debug.Log(string.Format("new session found: {0} {1}", newGame.LocalIp, newGame.roomName));
+
+            GameObject.Find("PairingLobby").SendMessage("DisplayGames", AvailableGames);
+        }
+        
+    }
+
+    public void UnregisterSession(GameToJoin existingGame)
+    {
+        if (AvailableGames.ContainsKey(existingGame.LocalIp))
+        {
+            AvailableGames.Remove(existingGame.LocalIp);
+            GameObject.Find("PairingLobby").SendMessage("DisplayGames", AvailableGames);
+        }
+    }
+
+
+
+    // UTILITIES
+    //==========
+
+    public bool HasInternetLANConnection()
 	{
 		bool isConnectedToInternet = false;
 		// Application.internetReachability == NetworkReachability.ReachableViaCarrierDataNetwork ||
@@ -71,6 +75,7 @@ public class NetworkingManager : MonoBehaviour {
 		}
 		return isConnectedToInternet;
 	}
+
 
 	//		To check for Internet Connection,
 	IEnumerator CheckForConnection() 

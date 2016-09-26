@@ -85,15 +85,16 @@ namespace Prizm {
 			m_IsClient = true;
 
 			Initialize ();
-			StartAsServer();
+            StartAsClient();
+            
 		}
 
 		public void InitializeAsServer() {
 
 			m_IsServer = true;
 			Initialize ();
-			StartAsClient ();
-		}
+            StartAsServer();
+        }
 
 		public void Initialize()
 		{
@@ -141,7 +142,11 @@ namespace Prizm {
 			running = true;
 			m_IsClient = true;
 			Debug.Log("StartAsClient Discovery listening");
-		}
+            
+            // GameObject.Find("PairingLobby").GetComponent<PairingLobbyController>().SendMessage("ClientDiscoveryStarted");
+            Broadcast("ClientDiscoveryStarted",null);
+
+        }
 
 		// perform actual broadcasts
 		public void StartAsServer()
@@ -251,7 +256,7 @@ namespace Prizm {
 //				}
 //			}
 			if (data == "disconnected") {
-				SendMessage ("UnregisterSession", new GameToJoin (HostIp, data));
+				Broadcast ("UnregisterSession", new GameToJoin (HostIp, data));
 			}
 
 			//if game is not labeled disconnected and we don't have it on our available games list, add the game to the list
@@ -265,10 +270,16 @@ namespace Prizm {
 //			}
 
 			else {
-				SendMessage ("RegisterSession", new GameToJoin (HostIp, data));
+				Broadcast ("RegisterSession", new GameToJoin (HostIp, data));
 			}
 
 		}
+
+        private void Broadcast(String functionName, object data)
+        {
+            GameObject.Find("NetworkManager").SendMessage(functionName, data);
+
+        }
 
 		public string GetRoomData(){
 			string roomName = Lexic.NameGenerator.GetNextRandomName ();

@@ -46,5 +46,8 @@ namespace Prizm {
 //
 			GetComponent<PrizmGameManager> ().loadFromConfig = loadFromConfig;
 		}
-	}
+
+ 
+
+    }
 }
