@@ -30,6 +30,7 @@ public class WebsocketClient : MonoBehaviour {
 			Destroy (gameObject);
 	}
 
+
 	void Update() {
 		if (messageLog.Count > 0) {	//if we have messages in our backlog, we have to process them in the main thread
 			int numMessages = messageLog.Count;

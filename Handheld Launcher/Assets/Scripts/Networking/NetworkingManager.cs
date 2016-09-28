@@ -21,6 +21,7 @@ public class NetworkingManager : MonoBehaviour {
 		gameObject.AddComponent<WebsocketClient> ();
 
 		networkDiscovery = GetComponent<NetworkDiscovery> ();
+		websocketClient = GetComponent<WebsocketClient> ();
 
 		networkDiscovery.InitializeAsClient ();
 	}
@@ -60,6 +61,16 @@ public class NetworkingManager : MonoBehaviour {
         }
     }
 
+	public void JoinSession(GameToJoin game) {
+
+		Debug.Log ("JoinSession");
+		Debug.Log (game);
+
+		websocketClient.BeginConnection(game.LocalIp, game.roomName);
+		//websocketClient.instance.BeginConnection(game.LocalIp, game.roomName);
+		//btn.GetComponent<Button>().onClick.AddListener(() => WebsocketClient.instance.BeginConnection(game.LocalIp, game.roomName));
+		//btn.GetComponent<Button>().onClick.AddListener(()=> ShowRoomInfo());
+	}
 
 
     // UTILITIES
