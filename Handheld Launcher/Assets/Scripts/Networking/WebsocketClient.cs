@@ -42,10 +42,12 @@ public class WebsocketClient : MonoBehaviour {
 
 	void Start() {
 
-		gameObject.AddComponent<WebsocketMessageQueue> ();
+		//gameObject.AddComponent<WebsocketMessageQueue> ();
 		messageQueue = gameObject.GetComponent<WebsocketMessageQueue> ();
 
 		messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerDescriptor);
+
+		Debug.Log ("WS client start");
 	}
 
 	void OnPlayerDescriptor(JSONObject data) {
@@ -98,7 +100,7 @@ public class WebsocketClient : MonoBehaviour {
 //		}
 	}
 
-	public void BeginConnection(string ipAddress, string name){
+	public void BeginConnection(string ipAddress){
 
 		string wsUrl = String.Format("ws://{0}:{1}/{2}", ipAddress, websocketPort,websocketService );
 		Debug.Log ("Connecting to Webscoket server @ " + wsUrl);

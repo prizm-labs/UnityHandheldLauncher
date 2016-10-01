@@ -80,7 +80,7 @@ namespace Prizm {
 			GameObject btn = Instantiate (Resources.Load ("PlayTablePrefabs/UI/RoomButton/Btn_Room")) as GameObject;
 			btn.transform.SetParent (PanelButton);
 			btn.transform.FindChild ("Text").GetComponent<Text> ().text = game.roomName + "\n" + game.LocalIp;
-			btn.GetComponent<Button> ().onClick.AddListener (() => WebsocketClient.instance.BeginConnection (game.LocalIp, game.roomName));
+//			btn.GetComponent<Button> ().onClick.AddListener (() => WebsocketClient.instance.BeginConnection (game.LocalIp, game.roomName));
 			btn.GetComponent<Button>().onClick.AddListener(()=> ShowRoomInfo());
 		}
 
