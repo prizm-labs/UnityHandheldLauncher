@@ -32,7 +32,7 @@ namespace Prizm {
 		{
 			Debug.Log ("tapped");
 			if (!myPlayerDescriptor.playerSeated) {
-				HHManager.instance.SelectThisPlayer (myPlayerDescriptor);
+				//HHManager.instance.SelectThisPlayer (myPlayerDescriptor);
 			}
 		}
 

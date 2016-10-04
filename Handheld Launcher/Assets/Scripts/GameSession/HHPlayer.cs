@@ -32,7 +32,7 @@ namespace Prizm {
 				tz.SetOwner (this);
 			}
 
-			SendPlayerDescriptor ();
+			//SendPlayerDescriptor ();
 			SendTargetZoneDescriptors ();
 		}
 			
@@ -56,14 +56,14 @@ namespace Prizm {
 			
 
 
-		public void SendPlayerDescriptor(){
-			//Debug.Log ("sending players descriptor");
+		//public void SendPlayerDescriptor(){
+		//	//Debug.Log ("sending players descriptor");
 
-			JSONObject tempObj = new JSONObject ();
-			tempObj.AddField ("type", "PlayerDescriptor");
-			tempObj.AddField ("data", new JSONObject(JsonUtility.ToJson (myPlayerData)));
-			WebsocketClient.instance.BroadcastData (tempObj);
-		}
+		//	JSONObject tempObj = new JSONObject ();
+		//	tempObj.AddField ("type", "PlayerDescriptor");
+		//	tempObj.AddField ("data", new JSONObject(JsonUtility.ToJson (myPlayerData)));
+		//	WebsocketClient.instance.BroadcastData (tempObj);
+		//}
 
 		void SendTargetZoneDescriptors() {
 			Debug.Log ("broadcasting HH targetzones");

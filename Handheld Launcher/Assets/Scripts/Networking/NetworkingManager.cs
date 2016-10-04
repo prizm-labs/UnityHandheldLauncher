@@ -7,6 +7,18 @@ using Prizm;
 
 public class NetworkingManager : MonoBehaviour {
 
+	public static NetworkingManager instance;
+
+	void Awake()
+	{
+		if (instance == null)
+		{
+			instance = this;
+		}
+		else
+			Destroy(gameObject);
+	}
+
 	NetworkDiscovery networkDiscovery;
 	public WebsocketClient websocketClient;
 
@@ -21,23 +33,14 @@ public class NetworkingManager : MonoBehaviour {
 		Debug.Log ("newtowrk manager Start");
 
 		// Bootstrapping 
-//		gameObject.AddComponent<WebsocketMessageQueue> ();
-//		gameObject.AddComponent<NetworkDiscovery> ();
-		//gameObject.AddComponent<WebSocketManager> ();
-//		gameObject.AddComponent<WebsocketClient> ();
-
 		networkDiscovery = GetComponent<NetworkDiscovery> ();
 		websocketClient = GetComponent<WebsocketClient> ();
 
 		networkDiscovery.InitializeAsClient ();
 
-		onSessionsChanged += (Dictionary<string, GameToJoin> availableGames) => {
-
-		};
+		onSessionsChanged += (Dictionary<string, GameToJoin> availableGames) => {};
 
 		tryAutoWebsocketClientConnection ();
-
-
 	}
 
 	// allow automatic websocket client connection
@@ -94,9 +97,21 @@ public class NetworkingManager : MonoBehaviour {
 		Debug.Log (game);
 
 		websocketClient.BeginConnection(game.LocalIp);
-		//websocketClient.instance.BeginConnection(game.LocalIp, game.roomName);
-		//btn.GetComponent<Button>().onClick.AddListener(() => WebsocketClient.instance.BeginConnection(game.LocalIp, game.roomName));
-		//btn.GetComponent<Button>().onClick.AddListener(()=> ShowRoomInfo());
+	}
+
+	public void RequestSeat(PlayerDescriptor seatInfo)
+	{
+		Debug.Log("RequestSeat" + seatInfo.ToString());
+
+		JSONObject seatRequest = new JSONObject();
+		seatRequest.AddField("type", "SeatRequested");
+		seatRequest.AddField("player", seatInfo.playerGuid);
+
+		// send websocket connection ID 
+		// so server can associate the connection ID with the player ID
+		seatRequest.AddField("connection", websocketClient.connectionID);
+
+		websocketClient.SendToTabletop(seatRequest);
 	}
 
 

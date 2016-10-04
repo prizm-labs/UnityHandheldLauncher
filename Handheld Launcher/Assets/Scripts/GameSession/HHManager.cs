@@ -13,11 +13,13 @@ namespace Prizm
 		GameObject playerPrefab;
 		GameObject playerIconPrefab;
 
+		static string dockPrefabPath = "Prefabs/GameSession/PlayerDockHH";
+
 		List<HHPlayerSelector> potentialPlayers;
 
+		string playerId;
 		bool playerSeated = false;
-
-		HHPlayer myPlayer;
+		HHPlayer myPlayer = null;
 
 		void Awake ()
 		{
@@ -34,8 +36,35 @@ namespace Prizm
 		{
 			networkingManager = GameObject.Find ("NetworkManager").GetComponent<NetworkingManager> ();
 
-			GameObject.Find ("NetworkManager").GetComponent<WebsocketClient>().messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerMessage);
+			//GameObject.Find ("NetworkManager").GetComponent<WebsocketClient>().messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerMessage);
+			WebsocketMessageQueue.instance.AddHandler(Topics.PlayerDescriptor, OnPlayerMessage);
+			WebsocketMessageQueue.instance.AddHandler(Topics.SeatRequest, OnSeatRequestMesage);
 //			networkingManager.websocketClient.messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerMessage);
+		}
+
+		public void DisconnectPlayer()
+		{
+
+		}
+
+		void OnSeatRequestMesage(JSONObject message)
+		{
+			Debug.Log("OnSeatRequestMessage: " + message.ToString());
+
+			bool seatWasGranted = message.GetField("granted").b;
+			PlayerDescriptor playerInfo = new PlayerDescriptor(message.GetField("data"));
+
+			// if seat granted
+			if (seatWasGranted) {
+				Debug.Log("setting player");
+
+				GameObject newPlayer = Instantiate(Resources.Load(dockPrefabPath)) as GameObject;
+				myPlayer = newPlayer.GetComponent<HHPlayer>();
+				myPlayer.BootstrapPlayer(playerInfo);
+
+				playerSeated = true;
+			}
+
 		}
 
 		void OnPlayerMessage (JSONObject message)
@@ -45,23 +74,23 @@ namespace Prizm
 
 			//if players not seated, show the options for players to join
 
-				JSONObject newObj = new JSONObject (message.ToString ());
-				//TODO: better parsing
-				PlayerDescriptor newDescriptor = new PlayerDescriptor (newObj.GetField ("data"));
+				//JSONObject newObj = new JSONObject (message.ToString ());
+				////TODO: better parsing
+				//PlayerDescriptor newDescriptor = new PlayerDescriptor (newObj.GetField ("data"));
 
-				Debug.Log ("got this newDescriptor parsed: " + newDescriptor.playerName);
+				//Debug.Log ("got this newDescriptor parsed: " + newDescriptor.playerName);
 
-				Debug.Log ("complete original json object: " + newObj.ToString ());
+				//Debug.Log ("complete original json object: " + newObj.ToString ());
 
-				Debug.Log ("just checking if we have guid: " + newDescriptor.playerGuid);
+				//Debug.Log ("just checking if we have guid: " + newDescriptor.playerGuid);
 
-				bool weHavePlayer = false;
+				//bool weHavePlayer = false;
 
-				foreach (HHPlayerSelector pSelector in potentialPlayers) {
-					if (pSelector.myPlayerDescriptor.playerName == newDescriptor.playerName) {
-						weHavePlayer = true;
-					}
-				}
+				//foreach (HHPlayerSelector pSelector in potentialPlayers) {
+				//	if (pSelector.myPlayerDescriptor.playerName == newDescriptor.playerName) {
+				//		weHavePlayer = true;
+				//	}
+				//}
 
 
 
@@ -138,19 +167,24 @@ namespace Prizm
 		//		}
 		//
 		//
-		public void SelectThisPlayer (PlayerDescriptor selectedPlayer)
+		public void RequestSeatForPlayer (PlayerDescriptor selectedPlayer)
 		{
-			Debug.Log ("selecting this player" + selectedPlayer.playerName);
+			Debug.Log ("selecting this player" + selectedPlayer);
 			Debug.Log ("complete information around this player: " + new JSONObject (JsonUtility.ToJson (selectedPlayer)).ToString ());
-			playerSeated = true;	//stop listening for open seats
-			foreach (HHPlayerSelector pSelector in potentialPlayers) {
-				Destroy (pSelector.gameObject);
-			}
 
-			GameObject playerObject = Instantiate (Resources.Load ("Prefabs/PlayerDockHH")) as GameObject;
-			myPlayer = playerObject.GetComponent<HHPlayer> ();
-			selectedPlayer.playerSeated = true;
-			myPlayer.BootstrapPlayer (selectedPlayer);
+
+			GameObject.Find(GlobalObjects.NetworkManagerObject).GetComponent<NetworkingManager>().RequestSeat(selectedPlayer);
+
+			//playerSeated = true;	//stop listening for open seats
+
+			//foreach (HHPlayerSelector pSelector in potentialPlayers) {
+			//	Destroy (pSelector.gameObject);
+			//}
+
+			//GameObject playerObject = Instantiate (Resources.Load ("Prefabs/PlayerDockHH")) as GameObject;
+			//myPlayer = playerObject.GetComponent<HHPlayer> ();
+			//selectedPlayer.playerSeated = true;
+			//myPlayer.BootstrapPlayer (selectedPlayer);
 		}
 
 

@@ -14,7 +14,8 @@ public class PairingLobbyController : MonoBehaviour {
 	// Prefab heirarchy and Resources paths
     static string sessionsListObjectPath = "SessionAvailable/ScrollView/Panel";
     static string sessionEntryTemplatePrefabPath = "Prefabs/UIComponents/SessionEntry";
-	static string sessionEntryTemplateButtonPath = "JoinButton";
+	static string sessionEntryNameObject = "SessionName";
+	static string sessionEntryButtonObject = "JoinButton";
 
 
     public void OnEnter() {
@@ -34,6 +35,8 @@ public class PairingLobbyController : MonoBehaviour {
 
 		float sessionEntryTemplateHeight = sessionEntryTemplate.transform.GetComponent<RectTransform>().rect.height;
 	
+
+
 		// clear all session entry listings
 		foreach (Transform child in SessionsListPanel)
         {
@@ -54,20 +57,24 @@ public class PairingLobbyController : MonoBehaviour {
             // TODO calculate (vertical) offset for each subsequent button in sessions list
             // ~230px Y
 			float entryOffset = topOffset + index*sessionEntryTemplateHeight;
-			CreateGamesButton(sessionEntryTemplate, game, SessionsListPanel, entryOffset);
+			CreateGamesButton(game, SessionsListPanel, entryOffset);
         }
+
+		Destroy(sessionEntryTemplate);
     }
 
-	void CreateGamesButton(GameObject sessionEntryTemplate, GameToJoin game, Transform SessionsListPanel, float topOffset)
+	void CreateGamesButton(GameToJoin game, Transform SessionsListPanel, float topOffset)
     {
-		sessionEntryTemplate.transform.SetParent(SessionsListPanel);
-		sessionEntryTemplate.transform.GetComponent<RectTransform>().localPosition = new Vector2(0, topOffset);
+		GameObject sessionEntry = Instantiate(Resources.Load(sessionEntryTemplatePrefabPath)) as GameObject;
 
-		sessionEntryTemplate.transform.Find("SessionName").GetComponent<Text>().text = game.roomName + "\n" + game.LocalIp;
-		sessionEntryTemplate.transform.Find(sessionEntryTemplateButtonPath).GetComponent<Button>().onClick.AddListener( 
+		sessionEntry.transform.SetParent(SessionsListPanel);
+		sessionEntry.transform.GetComponent<RectTransform>().localPosition = new Vector2(0, topOffset);
+
+		sessionEntry.transform.Find(sessionEntryNameObject).GetComponent<Text>().text = game.roomName + "\n" + game.LocalIp;
+		sessionEntry.transform.Find(sessionEntryButtonObject).GetComponent<Button>().onClick.AddListener( 
 			() => {
 
-				GameObject.Find("AppManager").SendMessage("LoadGameScene");
+			GameObject.Find(GlobalObjects.AppManagerObject).SendMessage("LoadGameScene");
 				//GameObject.Find("NetworkManager").SendMessage("JoinSession",game);
 			}
 		);
@@ -80,7 +87,7 @@ public class PairingLobbyController : MonoBehaviour {
 		sessionDiscoveryInfo.SetActive (false);
 		sessionsAvailableView.SetActive (false);
 
-		GameObject.Find ("NetworkManager").GetComponent<NetworkingManager> ().onSessionsChanged += DisplayGames;
+		GameObject.Find (GlobalObjects.NetworkManagerObject).GetComponent<NetworkingManager> ().onSessionsChanged += DisplayGames;
 	}
 
 	void Awake () {

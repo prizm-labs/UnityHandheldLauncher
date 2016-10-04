@@ -4,37 +4,36 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using WebSocketSharp;
+using Prizm;
 
+// WebsocketMessageQueue is the bridge between the websocket messages in the background threads
+// and Update() loop in the main thread
 
-//namespace AssemblyCSharp
-//{
-//	public class WebsocketQueue
-//	{
-//		public WebsocketQueue ()
-//		{
-//		}
-//	}
-//}
-//
-//public class Wait {
-//	public Wait(MonoBehaviour mb, float seconds, Action a) {
-//		mb.StartCoroutine(RunAndWait(seconds, a));
-//	}
-//
-//	IEnumerator RunAndWait(float seconds, Action a) {
-//		yield return new WaitForSeconds(seconds);
-//		a();
-//	}
-//}
-
+// all client and server websocket connections should push messages into this singleton queue
+// any script component should add to the delegate for the message topic it wants to act on
 
 public enum State { NotRunning, Running, Connected, Ping, Pong, Done }
 
 public delegate void Handler();
 
-public enum Topics { Unknown, SeatsAvailable, PlayerDescriptor, ZoneDescriptor, PieceDescriptor };
+public enum Topics { Unknown, SeatsAvailable, SeatRequest, PlayerDescriptor, ZoneDescriptor, PieceDescriptor, ClientRegistration };
 
 public class WebsocketMessageQueue : MonoBehaviour {
+
+	public static WebsocketMessageQueue instance;
+
+	void Awake()
+	{
+		if (instance == null)
+		{
+			instance = this;
+		}
+		else {
+			Debug.LogError("multiple instances of WebsocketMessageQueue!!!");
+			Destroy(gameObject);
+		}
+	}
+	
 	private readonly object syncLock = new object();
 	private readonly Queue<string> pendingMessages = new Queue<string>();
 
@@ -47,20 +46,45 @@ public class WebsocketMessageQueue : MonoBehaviour {
 	private string currentMessage = "";
 
 
-	public void AddHandler(Topics state, OnMessageDelegate handler) {
+	// the exact string in the websocket message for particular topics 
+	Dictionary<string, Topics> MessageTopicLookup = new Dictionary<string, Topics>
+	{
+		{ "PlayerDescriptor", Topics.PlayerDescriptor },
+		{ "PieceDescriptor", Topics.PieceDescriptor },
+		{ "ZoneDescriptor", Topics.ZoneDescriptor },
+		{ "SeatsAvailable", Topics.SeatsAvailable },
+		{ "RegisterClient", Topics.ClientRegistration },
+		{ "SeatRequest", Topics.SeatRequest }
+	};
 
-		if (handlers.ContainsKey(state)) {
-			handlers [state] += handler;
+	public void AddHandler(Topics topic, OnMessageDelegate handler) {
+
+		if (handlers.ContainsKey(topic)) {
+			handlers [topic] += handler;
 
 		} else {
-			handlers.Add(state, handler);
+			handlers.Add(topic, handler);
+		}
+	}
+
+	public void RemoveHandler(Topics topic, OnMessageDelegate handler)
+	{
+		if (handlers.ContainsKey(topic))
+		{
+			foreach (Delegate existingHandler in handlers[topic].GetInvocationList())
+			{
+				if (existingHandler == handler)
+				{
+					handlers[topic] -= handler;
+				}
+			}
+
 		}
 	}
 
 	public void QueueMessage(string message) {
-		State cur;
+
 		lock(syncLock) {
-			//cur = currentState;
 			pendingMessages.Enqueue(message);
 		}
 
@@ -72,6 +96,7 @@ public class WebsocketMessageQueue : MonoBehaviour {
 	}
 
 	public void Update() {
+		
 		while (pendingMessages.Count > 0) {
 
 			currentMessage = pendingMessages.Dequeue();
@@ -100,40 +125,43 @@ public class WebsocketMessageQueue : MonoBehaviour {
 
 			topicString = json.GetField ("type").str;
 
-			switch (topicString) {
+			if (MessageTopicLookup.TryGetValue(topicString, out topic))
+			{
+				OnMessageDelegate onMessageDelegate;
 
-			case "PlayerDescriptor":
-				topic = Topics.PlayerDescriptor;
-				break;
-
-			case "ZoneDescriptor":
-				topic = Topics.ZoneDescriptor;
-				break;
-
-			case "PieceDescriptor":
-				topic = Topics.PieceDescriptor;
-				break;
-
-			default:
-				topic = Topics.Unknown;
-				break;
+				if (handlers.TryGetValue(topic, out onMessageDelegate))
+				{
+					onMessageDelegate(json);
+				}
 			}
-
-			OnMessageDelegate onMessageDelegate;
-			if (handlers.TryGetValue(topic, out onMessageDelegate)) {
-				onMessageDelegate (json);
+			else {
+				Debug.LogWarning("message without known topic");
 			}
-
-//			try {
-//				
-//			} catch (System.Exception e) {
-//				Debug.LogWarning ("message without known topic");
-//				Debug.LogWarning (e);
-//			}
 				
 		}
 	}
 }
+
+//namespace AssemblyCSharp
+//{
+//	public class WebsocketQueue
+//	{
+//		public WebsocketQueue ()
+//		{
+//		}
+//	}
+//}
+//
+//public class Wait {
+//	public Wait(MonoBehaviour mb, float seconds, Action a) {
+//		mb.StartCoroutine(RunAndWait(seconds, a));
+//	}
+//
+//	IEnumerator RunAndWait(float seconds, Action a) {
+//		yield return new WaitForSeconds(seconds);
+//		a();
+//	}
+//}
 
 //public class StateMachine : MonoBehaviour {
 //	private readonly object syncLock = new object();

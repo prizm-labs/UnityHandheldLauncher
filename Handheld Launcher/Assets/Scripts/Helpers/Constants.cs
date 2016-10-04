@@ -2,7 +2,24 @@
 using System.Collections;
 
 //global across all playtable games (changing this changes all games)
-namespace Prizm{
+namespace Prizm
+{
+
+	// Paths for Prefabs & object heirarchy
+	// !!! UPDATE THESE IF PREFABS STRUCTURE OR RESORUCE PATHS CHANGE!!!
+	public class GlobalObjects
+	{
+		public static string AppManagerObject = "AppManager";
+		public static string NetworkManagerObject = "NetworkManager";
+		public static string HandheldManagerObject = "HandheldManager";
+		public static string GameViewManagerObject = "GameViewManager";
+	}
+
+
+
+
+
+
 	public enum ObjectCreatorButtons {Player = 0, Dice, Cards, Common, Custom, LoadBG, BGMusic}
 
 	public enum TypeOfPiece {all = 0, gamePiece, playerPiece, cardPiece, dicePiece, currencyPiece, tutorialPiece}

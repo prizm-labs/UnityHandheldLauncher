@@ -17,6 +17,8 @@ public class WebsocketClient : MonoBehaviour {
 	public string ip;
 	public string sessionName;
 
+	public string connectionID;
+
 	static string websocketService = "players";
 	static int websocketPort = 4649;
 
@@ -46,58 +48,31 @@ public class WebsocketClient : MonoBehaviour {
 		messageQueue = gameObject.GetComponent<WebsocketMessageQueue> ();
 
 		messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerDescriptor);
+		messageQueue.AddHandler(Topics.ClientRegistration, OnRegisterClient);
+		messageQueue.AddHandler(Topics.ClientRegistration, OnRegisterClient);
 
 		Debug.Log ("WS client start");
 	}
 
+	// Websocket serve sends each client conenciton its websocket connection ID
+	// this client saves the conenction ID and will send it back along with the player ID (when available)
+	// so the server can associate a websocket connection with a player
+	void OnRegisterClient(JSONObject data)
+	{
+		Debug.Log("OnRegisterClient" + data.ToString());
+
+		connectionID = data.GetField("data").str;
+	}
+
 	void OnPlayerDescriptor(JSONObject data) {
-		Debug.Log ("Player descriptor");
+		Debug.Log ("Player descriptor"+data.ToString());
 	}
 
 
+
+
 	void Update() {
-
-
-//		if (messageLog.Count > 0) {	//if we have messages in our backlog, we have to process them in the main thread
-//			int numMessages = messageLog.Count;
-//
-//			for (int i = 0; i < numMessages; i++) {
-//				wsMessage = messageLog [i];
-//				if (debugging) {
-//					GameObject.Find ("Canvas/raw").GetComponent<Text> ().text = "raw ws message: '" + wsMessage + "';";
-//					try {
-//						JSONObject jsonText = new JSONObject (wsMessage);
-//						GameObject.Find ("Canvas/json").GetComponent<Text> ().text = "message in json: '" + jsonText.ToString () + "';";
-//					} catch (System.Exception e) {
-//						Debug.LogWarning ("probably improperly formatted json in debugging");
-//						Debug.LogWarning (e);
-//					}
-//
-//				}
-//
-//				JSONObject d = new JSONObject (wsMessage);
-//				//Debug.Log ("received object from json!\n" + d.ToString ());
-//				Debug.Log ("receieved packet type: " + d.GetField ("type").str);
-//				switch (d.GetField ("type").str) {
-//				case("PlayerDescriptor"):
-//					Debug.Log ("received a 'PlayerDescriptor'");
-//					PlayerDescriptorData (d);
-//					break;
-//				case("ZoneDescriptor"):
-//					Debug.Log ("got into a 'ZoneDescriptor'");
-//					ZoneDescriptorData (d);
-//					break;
-//				case("PieceDescriptor"):
-//					PieceDescriptorData (d);
-//					break;
-//				default:
-//					break;
-//
-//				}
-//			}
-//
-//			messageLog.RemoveRange (0, numMessages);
-//		}
+		
 	}
 
 	public void BeginConnection(string ipAddress){
@@ -115,10 +90,7 @@ public class WebsocketClient : MonoBehaviour {
 		ws.OnMessage += (sender, e) =>
 		{
 			wsMessage = e.Data;
-			Debug.Log("got a message: " + wsMessage);
-
 			messageQueue.QueueMessage(wsMessage);
-			//messageLog.Add(e.Data);
 		};
 
 		ws.OnError += (sender, e) =>
@@ -129,8 +101,11 @@ public class WebsocketClient : MonoBehaviour {
 
 		ws.OnClose += (sender, e) => {
 			Debug.LogError("Closing");
-			//ws.Send(String.Format("Player disconnected"));
 
+			// server disconnected
+			// TODO handle disconnection
+			// show manual reconnect button
+			// reconnect with cached IP
 		};
 		
 		ws.Connect();
@@ -139,6 +114,14 @@ public class WebsocketClient : MonoBehaviour {
 	public void BroadcastData(JSONObject data){
 		Debug.Log ("broadcasting data: " + data.ToString());
 		ws.Send (data.ToString ());
+	}
+
+	public void SendToTabletop(JSONObject data)
+	{
+		// append conenction ID to messge
+
+		Debug.Log("sending data to tabletop: " + data.ToString());
+		ws.Send(data.ToString());
 	}
 
 
