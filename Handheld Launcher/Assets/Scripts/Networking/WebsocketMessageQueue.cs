@@ -12,15 +12,44 @@ using Prizm;
 // all client and server websocket connections should push messages into this singleton queue
 // any script component should add to the delegate for the message topic it wants to act on
 
-public enum State { NotRunning, Running, Connected, Ping, Pong, Done }
+
+public enum Topics
+{
+	Unknown,
+	ClientRegistration,
+	SeatsAvailable, SeatRequest,
+	PlayerDescriptor, ZoneDescriptor, PieceDescriptor
+};
 
 public delegate void Handler();
 
-public enum Topics { Unknown, SeatsAvailable, SeatRequest, PlayerDescriptor, ZoneDescriptor, PieceDescriptor, ClientRegistration };
 
-public class WebsocketMessageQueue : MonoBehaviour {
+public class WebsocketMessageQueue : MonoBehaviour
+{
 
 	public static WebsocketMessageQueue instance;
+
+	// the exact string in the websocket message for particular topics 
+	Dictionary<string, Topics> MessageTopicLookup = new Dictionary<string, Topics>
+	{
+		{ "PlayerDescriptor", Topics.PlayerDescriptor },
+		{ "PieceDescriptor", Topics.PieceDescriptor },
+		{ "ZoneDescriptor", Topics.ZoneDescriptor },
+		{ "SeatsAvailable", Topics.SeatsAvailable },
+		{ "RegisterClient", Topics.ClientRegistration },
+		{ "SeatRequest", Topics.SeatRequest }
+	};
+
+
+	[SerializeField]
+	private string currentMessage = "";
+	private readonly Queue<string> pendingMessages = new Queue<string>();
+
+	private readonly Dictionary<Topics, OnMessageDelegate> handlers = new Dictionary<Topics, OnMessageDelegate>();
+	public delegate void OnMessageDelegate(JSONObject data);
+
+	private readonly object syncLock = new object();
+
 
 	void Awake()
 	{
@@ -34,30 +63,75 @@ public class WebsocketMessageQueue : MonoBehaviour {
 		}
 	}
 	
-	private readonly object syncLock = new object();
-	private readonly Queue<string> pendingMessages = new Queue<string>();
 
-	private readonly Dictionary<Topics, OnMessageDelegate> handlers
-	= new Dictionary<Topics, OnMessageDelegate>();
-
-	public delegate void OnMessageDelegate(JSONObject data);
-
-	[SerializeField]
-	private string currentMessage = "";
-
-
-	// the exact string in the websocket message for particular topics 
-	Dictionary<string, Topics> MessageTopicLookup = new Dictionary<string, Topics>
+	public void Update()
 	{
-		{ "PlayerDescriptor", Topics.PlayerDescriptor },
-		{ "PieceDescriptor", Topics.PieceDescriptor },
-		{ "ZoneDescriptor", Topics.ZoneDescriptor },
-		{ "SeatsAvailable", Topics.SeatsAvailable },
-		{ "RegisterClient", Topics.ClientRegistration },
-		{ "SeatRequest", Topics.SeatRequest }
-	};
 
-	public void AddHandler(Topics topic, OnMessageDelegate handler) {
+		while (pendingMessages.Count > 0)
+		{
+
+			currentMessage = pendingMessages.Dequeue();
+			Debug.Log("ws message: " + currentMessage);
+
+			JSONObject json;
+
+			try
+			{
+				json = new JSONObject(currentMessage);
+			}
+			catch (System.Exception e)
+			{
+				Debug.LogWarning("probably improperly formatted json in debugging");
+				Debug.LogWarning(e);
+			}
+
+			json = new JSONObject(currentMessage);
+			string topicString;
+			Topics topic;
+
+			try
+			{
+				json.GetField("type");
+
+			}
+			catch (System.Exception e)
+			{
+				Debug.LogWarning("message without topic");
+				Debug.LogWarning(e);
+			}
+
+			topicString = json.GetField("type").str;
+
+			if (MessageTopicLookup.TryGetValue(topicString, out topic))
+			{
+				OnMessageDelegate onMessageDelegate;
+
+				if (handlers.TryGetValue(topic, out onMessageDelegate))
+				{
+					onMessageDelegate(json);
+				}
+			}
+			else {
+				Debug.LogWarning("message without known topic");
+			}
+
+		}
+	}
+
+
+	public void QueueMessage(string message)
+	{
+
+		lock (syncLock)
+		{
+			pendingMessages.Enqueue(message);
+		}
+
+	}
+
+
+	public void AddHandler(Topics topic, OnMessageDelegate handler)
+	{
 
 		if (handlers.ContainsKey(topic)) {
 			handlers [topic] += handler;
@@ -66,6 +140,7 @@ public class WebsocketMessageQueue : MonoBehaviour {
 			handlers.Add(topic, handler);
 		}
 	}
+
 
 	public void RemoveHandler(Topics topic, OnMessageDelegate handler)
 	{
@@ -82,65 +157,10 @@ public class WebsocketMessageQueue : MonoBehaviour {
 		}
 	}
 
-	public void QueueMessage(string message) {
 
-		lock(syncLock) {
-			pendingMessages.Enqueue(message);
-		}
-
-	}
-
-	public void Start () {
-
-		Debug.Log ("WS message queue start");
-	}
-
-	public void Update() {
-		
-		while (pendingMessages.Count > 0) {
-
-			currentMessage = pendingMessages.Dequeue();
-			Debug.Log ("ws message: " + currentMessage);
-
-			JSONObject json;
-
-			try {
-				json = new JSONObject (currentMessage);
-			} catch (System.Exception e) {
-				Debug.LogWarning ("probably improperly formatted json in debugging");
-				Debug.LogWarning (e);
-			}
-
-			json = new JSONObject (currentMessage);
-			string topicString;
-			Topics topic; 
-
-			try {
-				json.GetField ("type");
-
-			} catch (System.Exception e) {
-				Debug.LogWarning ("message without topic");
-				Debug.LogWarning (e);
-			}
-
-			topicString = json.GetField ("type").str;
-
-			if (MessageTopicLookup.TryGetValue(topicString, out topic))
-			{
-				OnMessageDelegate onMessageDelegate;
-
-				if (handlers.TryGetValue(topic, out onMessageDelegate))
-				{
-					onMessageDelegate(json);
-				}
-			}
-			else {
-				Debug.LogWarning("message without known topic");
-			}
-				
-		}
-	}
 }
+
+//public enum State { NotRunning, Running, Connected, Ping, Pong, Done }
 
 //namespace AssemblyCSharp
 //{

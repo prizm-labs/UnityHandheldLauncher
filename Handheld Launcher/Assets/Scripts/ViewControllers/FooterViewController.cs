@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
+using Prizm;
 
 public class FooterViewController : MonoBehaviour {
 
@@ -15,8 +17,8 @@ public class FooterViewController : MonoBehaviour {
 	
 	}
 
-	public void UpdatePlayerName(string name)
+	public void UpdatePlayerInfo(PlayerDescriptor playerInfo)
 	{
-		playerName.GetComponent<GUIText>().text = name;
+		playerName.GetComponent<Text>().text = playerInfo.playerName;
 	}
 }

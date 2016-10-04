@@ -14,15 +14,34 @@ public class PairingLobbyController : MonoBehaviour {
 	// Prefab heirarchy and Resources paths
     static string sessionsListObjectPath = "SessionAvailable/ScrollView/Panel";
     static string sessionEntryTemplatePrefabPath = "Prefabs/UIComponents/SessionEntry";
+
 	static string sessionEntryNameObject = "SessionName";
 	static string sessionEntryButtonObject = "JoinButton";
 
+	// Use this for initialization
+	void Start()
+	{
 
-    public void OnEnter() {
+		discoveryFailedNotification.SetActive(false);
+		sessionDiscoveryInfo.SetActive(false);
+		sessionsAvailableView.SetActive(false);
 
-		sessionDiscoveryInfo.SetActive (true);
-
+		NetworkingManager.instance.onSessionsChanged += DisplayGames;
 	}
+
+
+	// VIEW TRANSITIONS
+	//=================
+
+
+    public void OnEnter() 
+	{
+		sessionDiscoveryInfo.SetActive(true);
+	}
+
+
+	// RENDERING METHODS
+	//==================
 
 
     public void DisplayGames (Dictionary<string, GameToJoin> AvailableGames)
@@ -36,7 +55,6 @@ public class PairingLobbyController : MonoBehaviour {
 		float sessionEntryTemplateHeight = sessionEntryTemplate.transform.GetComponent<RectTransform>().rect.height;
 	
 
-
 		// clear all session entry listings
 		foreach (Transform child in SessionsListPanel)
         {
@@ -46,9 +64,11 @@ public class PairingLobbyController : MonoBehaviour {
 		// resize listings panel height to fit number of listings
         SessionsListPanel.GetComponent<RectTransform>().sizeDelta = new Vector2(300, sessionEntryTemplateHeight * AvailableGames.Count);
 
+
 		// TODO top offset is half the height of the scrollable view
 		float viewHeight = SessionsListPanel.GetComponent<RectTransform>().rect.height;
 		float topOffset = viewHeight / 2;
+
 
 		int index = 0;
 
@@ -73,29 +93,9 @@ public class PairingLobbyController : MonoBehaviour {
 		sessionEntry.transform.Find(sessionEntryNameObject).GetComponent<Text>().text = game.roomName + "\n" + game.LocalIp;
 		sessionEntry.transform.Find(sessionEntryButtonObject).GetComponent<Button>().onClick.AddListener( 
 			() => {
-
-			GameObject.Find(GlobalObjects.AppManagerObject).SendMessage("LoadGameScene");
-				//GameObject.Find("NetworkManager").SendMessage("JoinSession",game);
+				GameObject.Find(GlobalObjects.AppManagerObject).SendMessage("LoadGameScene");
 			}
 		);
     }
 
-    // Use this for initialization
-    void Start () {
-	
-		discoveryFailedNotification.SetActive (false);
-		sessionDiscoveryInfo.SetActive (false);
-		sessionsAvailableView.SetActive (false);
-
-		GameObject.Find (GlobalObjects.NetworkManagerObject).GetComponent<NetworkingManager> ().onSessionsChanged += DisplayGames;
-	}
-
-	void Awake () {
-
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
 }

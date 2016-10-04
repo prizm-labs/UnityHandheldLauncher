@@ -10,68 +10,108 @@ public class PlayerSettingsController : MonoBehaviour {
 
 	public GameObject availableSeatsView;
 	public GameObject playerNameField;
+	public GameObject closeViewButton;
 
-	NetworkingManager networkingManager;
+	public GameObject availableSeatEntryPrefab; // "Prefabs/UIComponents/AvailableSeatEntry";
 
 	List<HHPlayerSelector> availableSeats;
 
 	int ListRowSeatCount = 4;
 
-	// Paths for Prefabs & object heirarchy
+	// PATHS FOR PREFABS & OBJECT HEIRARCHY
 	// !!! UPDATE THESE IF PREFABS STRUCTURE OR RESORUCE PATHS CHANGE!!!
-	static string availableSeatEntryTemplatePath = "Prefabs/UIComponents/AvailableSeatEntry";
 
 
 	static string availableSeatListObjectPath = "SeatsAvailable/ScrollView/Panel";
 	static string seatNameObject = "SeatName";
 	static string seatButtonObject = "Button";
 
-	// Use this for initialization
-	void Start () {
-	
-		networkingManager = GameObject.Find (GlobalObjects.NetworkManagerObject).GetComponent<NetworkingManager> ();
 
-		// listen for seats available event
-		//GameObject.Find (GlobalObjects.NetworkManagerObject).GetComponent<WebsocketClient>().
-		//          messageQueue.AddHandler (Topics.SeatsAvailable, OnAvailableSeatsMessage);
-		WebsocketMessageQueue.instance.AddHandler(Topics.SeatsAvailable, OnAvailableSeatsMessage);
-		WebsocketMessageQueue.instance.AddHandler(Topics.SeatRequest, OnSeatRequestMessage);
-	}
-
-			
-	// Update is called once per frame
-	void Update () {
-	
-	}
-
-	void OnSeatRequestMessage (JSONObject data)
+	void Start ()
 	{
-		Debug.Log("OnSeatRequestMessage: "+ data.ToString());
-		
-		PlayerDescriptor playerInfo = new PlayerDescriptor(data.GetField("data"));
+		// listen for seats available event
+		WebsocketMessageQueue.instance.AddHandler(Topics.SeatsAvailable, OnAvailableSeatsMessage);
+		//WebsocketMessageQueue.instance.AddHandler(Topics.SeatRequest, OnSeatRequestMessage);
 
-		bool seatWasGranted = data.GetField("granted").b;
 
-		if (seatWasGranted)
-		{
-			Debug.Log("seat was granted");
-			// set player name in display field
-			playerNameField.GetComponent<InputField>().text = playerInfo.playerName;
-
-			// switch to game view
-			GameObject.Find(GlobalObjects.GameViewManagerObject).SendMessage("HideInfoView");
-		}
-		else {
-			Debug.Log("seat was denied");
-		}
-
+		closeViewButton.transform.Find("Button").GetComponent<Button>().onClick.AddListener(
+			() =>
+			{
+				Debug.Log("OnCLick closeView button");
+				GameViewManager.instance.SendMessage("HideInfoView");
+			}
+		);
 	}
+
+
+	// DELEGATES
+	//==========
+
+
+	void OnSeatGranted(PlayerDescriptor playerInfo)
+	{
+		Debug.Log("seat was granted");
+		// set player name in display field
+		playerNameField.GetComponent<InputField>().text = playerInfo.playerName;
+
+		// switch to game view
+		GameObject.Find(GlobalObjects.GameViewManagerObject).SendMessage("HideInfoView");
+	}
+
+	//void OnSeatRequestMessage (JSONObject data)
+	//{
+	//	Debug.Log("OnSeatRequestMessage: "+ data.ToString());
+		
+	//	PlayerDescriptor playerInfo = new PlayerDescriptor(data.GetField("data"));
+
+	//	bool seatWasGranted = data.GetField("granted").b;
+
+	//	if (seatWasGranted)
+	//	{
+	//		Debug.Log("seat was granted");
+	//		// set player name in display field
+	//		playerNameField.GetComponent<InputField>().text = playerInfo.playerName;
+
+	//		// switch to game view
+	//		GameObject.Find(GlobalObjects.GameViewManagerObject).SendMessage("HideInfoView");
+	//	}
+	//	else {
+	//		Debug.Log("seat was denied");
+	//	}
+
+	//}
+
+
+	// Receving a list of all available seats from Tabletop Client
+	void OnAvailableSeatsMessage(JSONObject message)
+	{
+
+
+		Debug.Log("we got a new player on our potential roster!");
+
+		List<PlayerDescriptor> allSeats = new List<PlayerDescriptor>();
+		List<JSONObject> allSeatsData = message.GetField("data").list;
+
+		foreach (JSONObject seat in allSeatsData)
+		{
+			Debug.Log("seat data");
+			Debug.Log(seat.ToString());
+			allSeats.Add(new PlayerDescriptor(seat));
+		}
+
+		DisplaySeats(allSeats);
+	}
+
+
+	// RENDERING METHODS
+	//==================
+
 
 	void DisplaySeats(List<PlayerDescriptor> seats)
 	{
 
 		Transform SeatsListPanel = transform.FindChild(availableSeatListObjectPath);
-		GameObject availableSeatTemplate = Instantiate(Resources.Load(availableSeatEntryTemplatePath)) as GameObject;
+		GameObject availableSeatTemplate = Instantiate(availableSeatEntryPrefab) as GameObject;
 
 		// get height and width of template to calculate offset of each instance in list
 		float seatTemplateWidth = availableSeatTemplate.transform.GetComponent<RectTransform>().rect.width;
@@ -138,23 +178,12 @@ public class PlayerSettingsController : MonoBehaviour {
 		Destroy(availableSeatTemplate);
 	}
 
-	float GetSeatXOffset (int seatIndex, float seatWidth, float panelWidth)
-	{
-		return ((seatIndex % ListRowSeatCount) * seatWidth) - panelWidth / 2 + seatWidth/2 ;
-	}
-
-	float GetSeatYOffset(int seatIndex, float seatHeight, float panelHeight)
-	{
-		int rowIndex = (seatIndex - seatIndex % ListRowSeatCount) / ListRowSeatCount;
-		Debug.Log(rowIndex);
-		return ( rowIndex * -seatHeight) + panelHeight / 2 - seatHeight/2;
-	}
 
 	void CreateSeatButton(PlayerDescriptor seatInfo, Transform SeatsListPanel, float xOffset, float yOffset)
 	{
 
 		Debug.Log(string.Format("creating seat: {0} {1} {2}", xOffset, yOffset, seatInfo.playerName));
-		GameObject availableSeat = Instantiate(Resources.Load(availableSeatEntryTemplatePath)) as GameObject;
+		GameObject availableSeat = Instantiate(availableSeatEntryPrefab) as GameObject;
 
 		availableSeat.transform.SetParent(SeatsListPanel);
 		availableSeat.transform.GetComponent<RectTransform>().localPosition = new Vector2(xOffset, yOffset);
@@ -163,12 +192,12 @@ public class PlayerSettingsController : MonoBehaviour {
 		availableSeat.transform.Find(seatButtonObject).GetComponent<Button>().onClick.AddListener(
 			() =>
 			{
-			GameObject.Find(GlobalObjects.HandheldManagerObject).SendMessage("RequestSeatForPlayer",seatInfo);
-
-				//TODO show request loading 
+				HHManager.instance.SendMessage("RequestSeatForPlayer",seatInfo);
 				
 				// hide seat panel list
 				availableSeatsView.SetActive(false);
+
+				//TODO show request loading 
 
 				// the rest of this UI flow will be resolved once the server responds 
 				// with granting or denying seat request
@@ -176,29 +205,20 @@ public class PlayerSettingsController : MonoBehaviour {
 		);
 	}
 
-	// Receving a list of all available seats from Tabletop Client
-	void OnAvailableSeatsMessage (JSONObject message) {
 
+	// LAYOUT HELPERS
+	//===============
 
-		Debug.Log ("we got a new player on our potential roster!");
+	float GetSeatXOffset(int seatIndex, float seatWidth, float panelWidth)
+	{
+		return ((seatIndex % ListRowSeatCount) * seatWidth) - panelWidth / 2 + seatWidth / 2;
+	}
 
-		List<PlayerDescriptor> allSeats = new List<PlayerDescriptor>();
-		List<JSONObject> allSeatsData = message.GetField("data").list;
-
-		foreach (JSONObject seat in allSeatsData)
-		{
-			Debug.Log("seat data");
-			Debug.Log(seat.ToString());
-			allSeats.Add(new PlayerDescriptor(seat));
-		}
-
-		DisplaySeats(allSeats);
-
-		//newPlayerIcon.GetComponent<HHPlayerSelector> ().myPlayerDescriptor = newDescriptor;
-
-		//availableSeats.Add (newPlayerIcon.GetComponent<HHPlayerSelector> ());
-
-
+	float GetSeatYOffset(int seatIndex, float seatHeight, float panelHeight)
+	{
+		int rowIndex = (seatIndex - seatIndex % ListRowSeatCount) / ListRowSeatCount;
+		Debug.Log(rowIndex);
+		return (rowIndex * -seatHeight) + panelHeight / 2 - seatHeight / 2;
 	}
 
 }

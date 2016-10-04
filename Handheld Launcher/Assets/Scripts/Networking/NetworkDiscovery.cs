@@ -7,22 +7,10 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 namespace Prizm {
-	public class NetworkDiscovery : MonoBehaviour{
+	public class NetworkDiscovery : MonoBehaviour
+	{
+		
 		public static NetworkDiscovery instance;
-		void Awake(){
-			if (instance == null) {
-				instance = this;
-//				string sceneName = SceneManager.GetActiveScene ().name;
-//				if (sceneName == "TT_Scene" || sceneName == "TT_Scene_test" || sceneName == "TT_Scene_Example") {	//TODO: find a better system for this
-//					Initialize ();
-//					StartAsServer ();
-//					WebSocketManager.instance.StartAsServer ();				
-//				} else if (sceneName == "HH_Scene" || sceneName == "HH_Scene_test") {
-//					
-//				}
-			} else
-				Destroy (gameObject);
-		}
 
 		public string RoomName = "";
 
@@ -65,6 +53,58 @@ namespace Prizm {
 		public bool isServer { get { return m_IsServer; } set { m_IsServer = value; } }
 		public bool isClient { get { return m_IsClient; } set { m_IsClient= value; } }
 
+
+		void Awake()
+		{
+			if (instance == null)
+			{
+				instance = this;
+			}
+			else
+				Destroy(gameObject);
+		}
+
+
+		void Update()
+		{
+			if (hostId == -1)
+				return;
+
+			if (m_IsServer)
+				return;
+
+			int connectionId;
+			int channelId;
+			int receivedSize;
+			byte error;
+			NetworkEventType networkEvent = NetworkEventType.DataEvent;
+
+			do
+			{
+
+				byte[] msgInBuffer = new byte[kMaxBroadcastMsgSize];
+
+				networkEvent = NetworkTransport.ReceiveFromHost(hostId, out connectionId, out channelId, msgInBuffer, kMaxBroadcastMsgSize, out receivedSize, out error);
+
+				if (networkEvent == NetworkEventType.BroadcastEvent)
+				{
+					NetworkTransport.GetBroadcastConnectionMessage(hostId, msgInBuffer, kMaxBroadcastMsgSize, out receivedSize, out error);
+
+					string senderAddr;
+					int senderPort;
+					NetworkTransport.GetBroadcastConnectionInfo(hostId, out senderAddr, out senderPort, out error);
+
+					OnReceivedBroadcast(senderAddr, BytesToString(msgInBuffer));
+				}
+			} while (networkEvent != NetworkEventType.Nothing);
+
+		}
+
+
+		// DATA UTILITIES
+		//===============
+
+
 		static byte[] StringToBytes(string str)
 		{
 			byte[] bytes = new byte[str.Length * sizeof(char)];
@@ -80,17 +120,16 @@ namespace Prizm {
 			return new string(chars);
 		}
 
-		public void InitializeAsClient() {
-
+		public void InitializeAsClient() 
+		{
 			m_IsClient = true;
 
 			Initialize ();
-            StartAsClient();
-            
+			StartAsClient();
 		}
 
-		public void InitializeAsServer() {
-
+		public void InitializeAsServer()
+		{
 			m_IsServer = true;
 			Initialize ();
             StartAsServer();
@@ -205,70 +244,22 @@ namespace Prizm {
 			Debug.Log("Stopped Discovery broadcasting");
 		}
 
-		void Update()
-		{
-			if (hostId == -1)
-				return;
 
-			if (m_IsServer)
-				return;
-
-			int connectionId;
-			int channelId;
-			int receivedSize;
-			byte error;
-			NetworkEventType networkEvent = NetworkEventType.DataEvent;
-
-			do
-			{
-
-				byte[] msgInBuffer = new byte[kMaxBroadcastMsgSize];
-
-				networkEvent = NetworkTransport.ReceiveFromHost(hostId, out connectionId, out channelId, msgInBuffer, kMaxBroadcastMsgSize, out receivedSize, out error);
-
-				if (networkEvent == NetworkEventType.BroadcastEvent)
-				{
-					NetworkTransport.GetBroadcastConnectionMessage(hostId, msgInBuffer, kMaxBroadcastMsgSize, out receivedSize, out error);
-
-					string senderAddr;
-					int senderPort;
-					NetworkTransport.GetBroadcastConnectionInfo(hostId, out senderAddr, out senderPort, out error);
-
-					OnReceivedBroadcast(senderAddr, BytesToString(msgInBuffer));
-				}
-			} while (networkEvent != NetworkEventType.Nothing);
-
-		}
 
 		//every client devices will receive updated broadcasts of all hosts
 		public virtual void OnReceivedBroadcast(string fromAddress, string data){
 
-			//Debug.Log ("Got broadcast from [" + fromAddress + "] " + data);
 			string HostIp;
 			var address = fromAddress.Split (':');
 			HostIp = address [3];
 			//Debug.LogError (HostIp);
 
 			//if game is disconnected and is in our available list of games, remove it from that list
-//			if (data == "disconnected" && LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
-//				if (LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
-//					LoginManager.instance.RemoveGame (HostIp);
-//				}
-//			}
 			if (data == "disconnected") {
 				Broadcast ("UnregisterSession", new GameToJoin (HostIp, data));
 			}
 
 			//if game is not labeled disconnected and we don't have it on our available games list, add the game to the list
-//			else if (!LoginManager.instance.AvailableGames.ContainsKey (HostIp)) {
-//				string roomName = data;
-//				GameToJoin newGame = new GameToJoin (HostIp, roomName);
-//				LoginManager.instance.AddGame (newGame);
-//			} else {
-//				LoginManager.instance.AvailableGames [HostIp].roomName = data;
-//				LoginManager.instance.DisplayGames ();
-//			}
-
 			else {
 				Broadcast ("RegisterSession", new GameToJoin (HostIp, data));
 			}

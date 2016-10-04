@@ -7,13 +7,10 @@ namespace Prizm
 	public class HHManager : MonoBehaviour
 	{
 		public static HHManager instance;
-	
-		NetworkingManager networkingManager;
 
-		GameObject playerPrefab;
-		GameObject playerIconPrefab;
-
-		static string dockPrefabPath = "Prefabs/GameSession/PlayerDockHH";
+		public GameObject playerPrefab;
+		public GameObject playerIconPrefab;
+		public GameObject playerDockPrefab; //"Prefabs/GameSession/PlayerDockHH";
 
 		List<HHPlayerSelector> potentialPlayers;
 
@@ -28,24 +25,48 @@ namespace Prizm
 			} else {
 				Destroy (gameObject);
 			}
-
-			potentialPlayers = new List<HHPlayerSelector> ();
 		}
 
 		void Start ()
 		{
-			networkingManager = GameObject.Find ("NetworkManager").GetComponent<NetworkingManager> ();
+			potentialPlayers = new List<HHPlayerSelector>();
+		}
 
-			//GameObject.Find ("NetworkManager").GetComponent<WebsocketClient>().messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerMessage);
+		void OnEnable()
+		{
 			WebsocketMessageQueue.instance.AddHandler(Topics.PlayerDescriptor, OnPlayerMessage);
 			WebsocketMessageQueue.instance.AddHandler(Topics.SeatRequest, OnSeatRequestMesage);
-//			networkingManager.websocketClient.messageQueue.AddHandler (Topics.PlayerDescriptor, OnPlayerMessage);
 		}
+
+		void OnDisable()
+		{
+			WebsocketMessageQueue.instance.RemoveHandler(Topics.PlayerDescriptor, OnPlayerMessage);
+			WebsocketMessageQueue.instance.RemoveHandler(Topics.SeatRequest, OnSeatRequestMesage);
+		}
+
+
+		// SEATING PROCESS
+		//================
+
+
+		public void RequestSeatForPlayer(PlayerDescriptor selectedPlayer)
+		{
+			Debug.Log("selecting this player" + selectedPlayer);
+			Debug.Log("complete information around this player: " + new JSONObject(JsonUtility.ToJson(selectedPlayer)).ToString());
+
+			NetworkingManager.instance.RequestSeat(selectedPlayer);
+		}
+
 
 		public void DisconnectPlayer()
 		{
 
 		}
+
+
+		// DELEAGTES
+		//==========
+
 
 		void OnSeatRequestMesage(JSONObject message)
 		{
@@ -58,44 +79,27 @@ namespace Prizm
 			if (seatWasGranted) {
 				Debug.Log("setting player");
 
-				GameObject newPlayer = Instantiate(Resources.Load(dockPrefabPath)) as GameObject;
-				myPlayer = newPlayer.GetComponent<HHPlayer>();
-				myPlayer.BootstrapPlayer(playerInfo);
+				// TODO INSTANTIATE PLAYER & DOCK
+				//GameObject newPlayer = Instantiate();
+				//myPlayer = newPlayer.GetComponent<HHPlayer>();
+				//myPlayer.BootstrapPlayer(playerInfo);
 
 				playerSeated = true;
+
+				// update name in player settings
+				GameViewManager.instance.playerInfoView.SendMessage("OnSeatGranted", playerInfo);
+
+				// update name in footer bar
+				GameViewManager.instance.footerPanel.SendMessage("UpdatePlayerInfo", playerInfo);
+
 			}
 
 		}
 
+
 		void OnPlayerMessage (JSONObject message)
 		{
-
-			Debug.Log ("inside HH playerdescriptor delegate function");
-
-			//if players not seated, show the options for players to join
-
-				//JSONObject newObj = new JSONObject (message.ToString ());
-				////TODO: better parsing
-				//PlayerDescriptor newDescriptor = new PlayerDescriptor (newObj.GetField ("data"));
-
-				//Debug.Log ("got this newDescriptor parsed: " + newDescriptor.playerName);
-
-				//Debug.Log ("complete original json object: " + newObj.ToString ());
-
-				//Debug.Log ("just checking if we have guid: " + newDescriptor.playerGuid);
-
-				//bool weHavePlayer = false;
-
-				//foreach (HHPlayerSelector pSelector in potentialPlayers) {
-				//	if (pSelector.myPlayerDescriptor.playerName == newDescriptor.playerName) {
-				//		weHavePlayer = true;
-				//	}
-				//}
-
-
-
-
-
+			Debug.Log("inside HH playerdescriptor delegate function");
 		}
 		//
 		//		void Start() {
@@ -167,25 +171,6 @@ namespace Prizm
 		//		}
 		//
 		//
-		public void RequestSeatForPlayer (PlayerDescriptor selectedPlayer)
-		{
-			Debug.Log ("selecting this player" + selectedPlayer);
-			Debug.Log ("complete information around this player: " + new JSONObject (JsonUtility.ToJson (selectedPlayer)).ToString ());
-
-
-			GameObject.Find(GlobalObjects.NetworkManagerObject).GetComponent<NetworkingManager>().RequestSeat(selectedPlayer);
-
-			//playerSeated = true;	//stop listening for open seats
-
-			//foreach (HHPlayerSelector pSelector in potentialPlayers) {
-			//	Destroy (pSelector.gameObject);
-			//}
-
-			//GameObject playerObject = Instantiate (Resources.Load ("Prefabs/PlayerDockHH")) as GameObject;
-			//myPlayer = playerObject.GetComponent<HHPlayer> ();
-			//selectedPlayer.playerSeated = true;
-			//myPlayer.BootstrapPlayer (selectedPlayer);
-		}
 
 
 	}

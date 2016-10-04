@@ -12,6 +12,8 @@ using System.Collections;
 
 public class GameViewManager : MonoBehaviour {
 
+	public static GameViewManager instance;
+
 	// views are fullscreen UIPanels
 	public GameObject playerInfoView;
 	public GameObject gameWorldView;
@@ -27,18 +29,31 @@ public class GameViewManager : MonoBehaviour {
 
 	static float transitionTime = 1.0f;
 
+
+	void Awake()
+	{
+		if (instance == null)
+		{
+			instance = this;
+		}
+		else {
+			Destroy(gameObject);
+		}
+	}
+
+
 	// Use this for initialization
 	void Start () {
 
-		SetActiveView(playerInfoView);
+		//SetActiveView(playerInfoView);
 
+		HideView(playerInfoView, OffscreenUp());
+		TransitionViewInDown(playerInfoView);
+	}
 
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+	// LAYOUT HELPERS
+	//===============
+
 
 	Vector3 CenterScreen()
 	{
@@ -49,6 +64,11 @@ public class GameViewManager : MonoBehaviour {
 	{
 		return new Vector3(Screen.width / 2, Screen.height * 3/2, 0);
 	}
+
+
+	// VIEW TRANSITIONS
+	//=================
+
 
 	void SetActiveView (GameObject view)
 	{
@@ -67,13 +87,11 @@ public class GameViewManager : MonoBehaviour {
 	{
 		Debug.Log("HideInfoView");
 		TransitionViewOutUp(playerInfoView);
-
 	}
 
 	public void ShowInfoView()
 	{
 		TransitionViewInDown(playerInfoView);
-
 	}
 
 
@@ -94,6 +112,10 @@ public class GameViewManager : MonoBehaviour {
 	public void TransitionViewInDown(GameObject view)
 	{
 		view.transform.position = OffscreenUp();
+		view.SetActive(true);
+
 		iTween.MoveTo(view, CenterScreen(), transitionTime);
+
+		currentView = view;
 	}
 }
