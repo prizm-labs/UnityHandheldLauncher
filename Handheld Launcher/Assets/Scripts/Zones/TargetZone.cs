@@ -17,24 +17,36 @@ namespace Prizm {
 
 		protected override void Start() {
 			base.Start ();
-			if (WebsocketServer.instance != null) {
-				WebsocketServer.instance.PieceDescriptorData += PieceDescriptorFunction;
-			} else if (WebsocketClient.instance != null) {
-				WebsocketClient.instance.PieceDescriptorData += PieceDescriptorFunction;
-			} else {
-				Debug.LogError ("websocket client nor server is loaded yet, consider loading later with bootstrap");
+
+			if (WebsocketMessageQueue.instance != null)
+			{
+				WebsocketMessageQueue.instance.AddHandler(Topics.PieceDescriptor, PieceDescriptorFunction);
 			}
+			//if (WebsocketServer.instance != null) {
+			//	WebsocketServer.instance.PieceDescriptorData += PieceDescriptorFunction;
+			//} else if (WebsocketClient.instance != null) {
+			//	WebsocketClient.instance.PieceDescriptorData += PieceDescriptorFunction;
+
+			//} else {
+			//	Debug.LogError ("websocket client nor server is loaded yet, consider loading later with bootstrap");
+			//}
 		}
 
 		protected override void OnDisable() {
 			base.OnDisable ();
-			if (WebsocketServer.instance != null) {
-				WebsocketServer.instance.PieceDescriptorData -= PieceDescriptorFunction;
-			} else if (WebsocketClient.instance != null) {
-				WebsocketClient.instance.PieceDescriptorData -= PieceDescriptorFunction;
-			} else {
-				Debug.LogError ("websocket client nor server is loaded");
+
+			if (WebsocketMessageQueue.instance != null)
+			{
+				WebsocketMessageQueue.instance.RemoveHandler(Topics.PieceDescriptor, PieceDescriptorFunction);
 			}
+
+			//if (WebsocketServer.instance != null) {
+			//	WebsocketServer.instance.PieceDescriptorData -= PieceDescriptorFunction;
+			//} else if (WebsocketClient.instance != null) {
+			//	WebsocketClient.instance.PieceDescriptorData -= PieceDescriptorFunction;
+			//} else {
+			//	Debug.LogError ("websocket client nor server is loaded");
+			//}
 		}
 
 
